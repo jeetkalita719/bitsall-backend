@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: bitsall-postgres
+    environment:
+      POSTGRES_DB: bitsalldb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: bitsall
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bitsall-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bitsall-app
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bitsalldb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: bitsall
+      SPRING_CLOUD_AZURE_STORAGE_BLOB_CONNECTION_STRING: DefaultEndpointsProtocol=https;AccountName=barnamoystorageaccount;AccountKey=DNVivCebd3YRietNy1Uj2D/3s46OvGAtmwUVk3j5JF1NEbgb/D8dgGCRTZcMFuLpwXXA98atfIrg+AStGxbKBQ==;EndpointSuffix=core.windows.net
+      SPRING_CLOUD_AZURE_STORAGE_BLOB_CONTAINER_NAME: bits-all
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bitsall-network
+
+volumes:
+  postgres_data:
+
+networks:
+  bitsall-network:
+    driver: bridge
+
